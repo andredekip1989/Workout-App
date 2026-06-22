@@ -134,8 +134,8 @@
     top: 0; left: 0; right: 0; height: 3px;
   }
   .pull::before { background: #dc2626; }
-  .legs::before { background: #f97316; }
   .push::before { background: #3b82f6; }
+  .legs::before { background: #f97316; }
 
   .dag-header { padding: 22px 24px 18px; border-bottom: 1px solid #1e1e1e; }
   .dag-naam {
@@ -341,11 +341,47 @@
 <div id="toast"></div>
 
 <script>
-  // Initiële schema
+  // Initiële schema met jouw oefeningen
   let schema = JSON.parse(localStorage.getItem('workoutSchema')) || {
-    monday: { name: 'Maandag', type: 'pull', icon: '🔴', exercises: [] },
-    wednesday: { name: 'Woensdag', type: 'legs', icon: '🟠', exercises: [] },
-    friday: { name: 'Vrijdag', type: 'push', icon: '🔵', exercises: [] }
+    monday: { 
+      name: 'Maandag', 
+      type: 'pull', 
+      icon: '🔴', 
+      exercises: [
+        { naam: 'Zittend stang na borst trekken', spier: 'RUG', gewicht: 60 },
+        { naam: 'Bank en over hoofd 3 hoek trekken', spier: 'TRICEP', gewicht: 27.5 },
+        { naam: 'T-bone', spier: 'RUG', gewicht: 40 },
+        { naam: 'Touw trekken naar beneden', spier: 'TRICEP', gewicht: '' },
+        { naam: 'Touwtrekken op apparaat (duo)', spier: 'RUG', gewicht: '' },
+        { naam: 'Paalstang naar beneden duwen', spier: 'TRICEP', gewicht: '' }
+      ]
+    },
+    friday: { 
+      name: 'Vrijdag', 
+      type: 'push', 
+      icon: '🔵', 
+      exercises: [
+        { naam: 'Dubbels chest', spier: 'BORST', gewicht: 68 },
+        { naam: 'Smithmachine gezicht tegen stang', spier: 'SCHOUDERS', gewicht: 20 },
+        { naam: 'Touw naar borst trekken', spier: 'BICEP', gewicht: 28.75 },
+        { naam: 'Liggend Smithmachine opwarmen', spier: 'BORST', gewicht: 25 },
+        { naam: 'Armstrekken omhoog met handvat & armband', spier: 'SCHOUDER', gewicht: 7.5 },
+        { naam: 'Bicep bank', spier: 'BICEP', gewicht: 10 },
+        { naam: 'Fly onderuit gezakt', spier: 'BORST', gewicht: 35 }
+      ]
+    },
+    wednesday: { 
+      name: 'Woensdag', 
+      type: 'legs', 
+      icon: '🟠', 
+      exercises: [
+        { naam: 'Hack Squat (schouderbreedte)', spier: 'BOVENBENEN', gewicht: 40 },
+        { naam: 'Plaat kuiten (punten erop)', spier: 'KUITEN', gewicht: 45 },
+        { naam: 'Rol naar beneden drukken', spier: 'HAMSTRING', gewicht: '' },
+        { naam: 'Kuiten ijzeren lat', spier: 'KUITEN', gewicht: '' },
+        { naam: 'Bovenbenen rol omhoog drukken', spier: 'BOVENBENEN', gewicht: '' }
+      ]
+    }
   };
 
   function saveSchema() {
@@ -369,7 +405,7 @@
       dagEl.innerHTML = `
         <div class="dag-header">
           <div class="dag-naam">${dag.icon} ${dag.name}</div>
-          <div class="dag-type">${dag.type === 'pull' ? 'PULL · RUG & TRICEP' : dag.type === 'legs' ? 'LEGS · BENEN & KUITEN' : 'PUSH · BORST, SCHOUDER & BICEP'}</div>
+          <div class="dag-type">${dag.type === 'pull' ? 'PULL · RUG & TRICEP' : dag.type === 'push' ? 'PUSH · BORST, SCHOUDER & BICEP' : 'LEGS · BENEN & KUITEN'}</div>
         </div>
         <ul class="oefeningen" id="oefeningen-${key}"></ul>
         <div class="add-oefening">
@@ -387,11 +423,11 @@
           <div class="info">
             <span class="naam-display" onclick="editNaam('${key}', ${idx})">${ex.naam}</span>
             <input class="naam-input" type="text" value="${ex.naam}" onblur="saveNaam('${key}', ${idx}, this.value)" onkeydown="if(event.key==='Enter') saveNaam('${key}', ${idx}, this.value)"/>
-            <span class="spier-display" onclick="editSpier('${key}', ${idx})">${ex.spier || 'ONBEKEND'}</span>
+            <span class="spier-display" onclick="editSpier('${key}', ${idx})">${ex.spier || '(geen spier gekozen)'}</span>
             <input class="spier-input" type="text" value="${ex.spier || ''}" onblur="saveSpier('${key}', ${idx}, this.value)" onkeydown="if(event.key==='Enter') saveSpier('${key}', ${idx}, this.value)"/>
           </div>
           <div class="gewicht-wrap">
-            <span class="gewicht-display" onclick="editGewicht('${key}', ${idx})">${ex.gewicht || '—'} kg</span>
+            <span class="gewicht-display" onclick="editGewicht('${key}', ${idx})">${ex.gewicht ? ex.gewicht + ' kg' : '—'}</span>
             <input class="gewicht-input" type="number" value="${ex.gewicht || ''}" step="0.5" onblur="saveGewicht('${key}', ${idx}, this.value)" onkeydown="if(event.key==='Enter') saveGewicht('${key}', ${idx}, this.value)"/>
             <div class="pr-badge">PR 🔥</div>
           </div>
@@ -405,7 +441,7 @@
   }
 
   function addExercise(dagKey) {
-    schema[dagKey].exercises.push({ naam: 'Nieuwe oefening', spier: '', gewicht: '' });
+    schema[dagKey].exercises.push({ naam: '', spier: '', gewicht: '' });
     saveSchema();
     renderUI();
   }
@@ -417,24 +453,31 @@
   }
 
   function editNaam(dagKey, idx) {
-    const disp = document.querySelectorAll('.naam-display')[Array.from(document.querySelectorAll('.oefening')).findIndex(el => {
-      return el.querySelector('[onclick*="editNaam(\'' + dagKey]')?.innerHTML.includes(schema[dagKey].exercises[idx].naam);
-    })];
-    const inp = disp?.parentElement?.querySelector('.naam-input');
-    if(disp && inp) {
-      disp.classList.add('editing');
-      inp.classList.add('editing');
-      inp.focus();
-    }
-  }
-
-  function editSpier(dagKey, idx) {
-    const displays = document.querySelectorAll('.spier-display');
+    const oefeningen = document.querySelectorAll('.oefening');
     let count = 0;
     Object.entries(schema).forEach(([k, d]) => {
       if(k === dagKey) {
-        const disp = displays[count + idx];
-        const inp = disp?.parentElement?.querySelector('.spier-input');
+        const oefening = oefeningen[count + idx];
+        const disp = oefening?.querySelector('.naam-display');
+        const inp = oefening?.querySelector('.naam-input');
+        if(disp && inp) {
+          disp.classList.add('editing');
+          inp.classList.add('editing');
+          inp.focus();
+        }
+      }
+      count += d.exercises.length;
+    });
+  }
+
+  function editSpier(dagKey, idx) {
+    const oefeningen = document.querySelectorAll('.oefening');
+    let count = 0;
+    Object.entries(schema).forEach(([k, d]) => {
+      if(k === dagKey) {
+        const oefening = oefeningen[count + idx];
+        const disp = oefening?.querySelector('.spier-display');
+        const inp = oefening?.querySelector('.spier-input');
         if(disp && inp) {
           disp.classList.add('editing');
           inp.classList.add('editing');
@@ -446,12 +489,13 @@
   }
 
   function editGewicht(dagKey, idx) {
-    const displays = document.querySelectorAll('.gewicht-display');
+    const oefeningen = document.querySelectorAll('.oefening');
     let count = 0;
     Object.entries(schema).forEach(([k, d]) => {
       if(k === dagKey) {
-        const disp = displays[count + idx];
-        const inp = disp?.parentElement?.querySelector('.gewicht-input');
+        const oefening = oefeningen[count + idx];
+        const disp = oefening?.querySelector('.gewicht-display');
+        const inp = oefening?.querySelector('.gewicht-input');
         if(disp && inp) {
           disp.classList.add('editing');
           inp.classList.add('editing');
@@ -463,7 +507,7 @@
   }
 
   function saveNaam(dagKey, idx, val) {
-    schema[dagKey].exercises[idx].naam = val || 'Nieuwe oefening';
+    schema[dagKey].exercises[idx].naam = val;
     saveSchema();
     renderUI();
   }
