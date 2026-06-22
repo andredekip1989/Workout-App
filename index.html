@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
 <link rel="mask-icon" href="/icons/icon-192.png" color="#dc2626">
 
-<!-- Splash screens for various iPhone sizes (placeholders - generate with PWABuilder/RealFaviconGenerator for best results) -->
+<!-- Splash screens for various iPhone sizes -->
 <link rel="apple-touch-startup-image" href="/icons/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)">
 <link rel="apple-touch-startup-image" href="/icons/splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)">
 
@@ -310,8 +310,204 @@
 <body>
 
 <div class="bg-weights" aria-hidden="true">
-  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20"[...]</svg>
-  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20"[...]</svg>
-  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20"[...]</svg>
-  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20"[...]</svg>
-  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18`
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
+</div>
+
+<div class="wrapper">
+  <div class="header">
+    <div class="label">📋 BEHEER JE TRAINING</div>
+    <h1>WORKOUT <span>SCHEMA</span></h1>
+    <div class="divider"></div>
+  </div>
+
+  <div class="edit-hint">
+    <span>✏️ KLIK OP EEN GEWICHT OM HET AAN TE PASSEN</span>
+  </div>
+
+  <div class="toolbar">
+    <button class="toolbar-btn" onclick="resetAllWeights()">↩ TERUGZETTEN NAAR BEGINGEWICHTEN</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="footer">TRAIN HARD · RECOVER HARDER · REPEAT</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // Initiële schema
+  let schema = JSON.parse(localStorage.getItem('workoutSchema')) || {
+    monday: { name: 'Maandag', type: 'pull', icon: '🔴', exercises: [] },
+    wednesday: { name: 'Woensdag', type: 'legs', icon: '🟠', exercises: [] },
+    friday: { name: 'Vrijdag', type: 'push', icon: '🔵', exercises: [] }
+  };
+
+  function saveSchema() {
+    localStorage.setItem('workoutSchema', JSON.stringify(schema));
+  }
+
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  function renderUI() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+
+    Object.entries(schema).forEach(([key, dag]) => {
+      const dagEl = document.createElement('div');
+      dagEl.className = `dag ${dag.type}`;
+      dagEl.innerHTML = `
+        <div class="dag-header">
+          <div class="dag-naam">${dag.icon} ${dag.name}</div>
+          <div class="dag-type">${dag.type === 'pull' ? 'PULL · RUG & TRICEP' : dag.type === 'legs' ? 'LEGS · BENEN & KUITEN' : 'PUSH · BORST, SCHOUDER & BICEP'}</div>
+        </div>
+        <ul class="oefeningen" id="oefeningen-${key}"></ul>
+        <div class="add-oefening">
+          <button class="add-oefening-btn" onclick="addExercise('${key}')">+ OEFENING TOEVOEGEN</button>
+        </div>
+      `;
+      grid.appendChild(dagEl);
+
+      const list = document.getElementById(`oefeningen-${key}`);
+      dag.exercises.forEach((ex, idx) => {
+        const li = document.createElement('li');
+        li.className = 'oefening';
+        li.innerHTML = `
+          <div class="nr">${idx + 1}</div>
+          <div class="info">
+            <span class="naam-display" onclick="editNaam('${key}', ${idx})">${ex.naam}</span>
+            <input class="naam-input" type="text" value="${ex.naam}" onblur="saveNaam('${key}', ${idx}, this.value)" onkeydown="if(event.key==='Enter') saveNaam('${key}', ${idx}, this.value)"/>
+            <span class="spier-display" onclick="editSpier('${key}', ${idx})">${ex.spier || 'ONBEKEND'}</span>
+            <input class="spier-input" type="text" value="${ex.spier || ''}" onblur="saveSpier('${key}', ${idx}, this.value)" onkeydown="if(event.key==='Enter') saveSpier('${key}', ${idx}, this.value)"/>
+          </div>
+          <div class="gewicht-wrap">
+            <span class="gewicht-display" onclick="editGewicht('${key}', ${idx})">${ex.gewicht || '—'} kg</span>
+            <input class="gewicht-input" type="number" value="${ex.gewicht || ''}" step="0.5" onblur="saveGewicht('${key}', ${idx}, this.value)" onkeydown="if(event.key==='Enter') saveGewicht('${key}', ${idx}, this.value)"/>
+            <div class="pr-badge">PR 🔥</div>
+          </div>
+          <button class="adj-btn" onclick="adjustWeight('${key}', ${idx}, 2.5)">+</button>
+          <button class="adj-btn" onclick="adjustWeight('${key}', ${idx}, -2.5)">−</button>
+          <button class="del-btn" onclick="deleteExercise('${key}', ${idx})">🗑</button>
+        `;
+        list.appendChild(li);
+      });
+    });
+  }
+
+  function addExercise(dagKey) {
+    schema[dagKey].exercises.push({ naam: 'Nieuwe oefening', spier: '', gewicht: '' });
+    saveSchema();
+    renderUI();
+  }
+
+  function deleteExercise(dagKey, idx) {
+    schema[dagKey].exercises.splice(idx, 1);
+    saveSchema();
+    renderUI();
+  }
+
+  function editNaam(dagKey, idx) {
+    const disp = document.querySelectorAll('.naam-display')[Array.from(document.querySelectorAll('.oefening')).findIndex(el => {
+      return el.querySelector('[onclick*="editNaam(\'' + dagKey]')?.innerHTML.includes(schema[dagKey].exercises[idx].naam);
+    })];
+    const inp = disp?.parentElement?.querySelector('.naam-input');
+    if(disp && inp) {
+      disp.classList.add('editing');
+      inp.classList.add('editing');
+      inp.focus();
+    }
+  }
+
+  function editSpier(dagKey, idx) {
+    const displays = document.querySelectorAll('.spier-display');
+    let count = 0;
+    Object.entries(schema).forEach(([k, d]) => {
+      if(k === dagKey) {
+        const disp = displays[count + idx];
+        const inp = disp?.parentElement?.querySelector('.spier-input');
+        if(disp && inp) {
+          disp.classList.add('editing');
+          inp.classList.add('editing');
+          inp.focus();
+        }
+      }
+      count += d.exercises.length;
+    });
+  }
+
+  function editGewicht(dagKey, idx) {
+    const displays = document.querySelectorAll('.gewicht-display');
+    let count = 0;
+    Object.entries(schema).forEach(([k, d]) => {
+      if(k === dagKey) {
+        const disp = displays[count + idx];
+        const inp = disp?.parentElement?.querySelector('.gewicht-input');
+        if(disp && inp) {
+          disp.classList.add('editing');
+          inp.classList.add('editing');
+          inp.focus();
+        }
+      }
+      count += d.exercises.length;
+    });
+  }
+
+  function saveNaam(dagKey, idx, val) {
+    schema[dagKey].exercises[idx].naam = val || 'Nieuwe oefening';
+    saveSchema();
+    renderUI();
+  }
+
+  function saveSpier(dagKey, idx, val) {
+    schema[dagKey].exercises[idx].spier = val.toUpperCase();
+    saveSchema();
+    renderUI();
+  }
+
+  function saveGewicht(dagKey, idx, val) {
+    schema[dagKey].exercises[idx].gewicht = val ? parseFloat(val) : '';
+    saveSchema();
+    renderUI();
+    if(val) toast('Gewicht opgeslagen! ✓');
+  }
+
+  function adjustWeight(dagKey, idx, amount) {
+    const current = schema[dagKey].exercises[idx].gewicht || 0;
+    schema[dagKey].exercises[idx].gewicht = parseFloat((current + amount).toFixed(1));
+    saveSchema();
+    renderUI();
+    toast(`Gewicht aangepast: ${schema[dagKey].exercises[idx].gewicht} kg`);
+  }
+
+  function resetAllWeights() {
+    if(confirm('Alle gewichten resetten?')) {
+      Object.entries(schema).forEach(([key, dag]) => {
+        dag.exercises.forEach(ex => ex.gewicht = '');
+      });
+      saveSchema();
+      renderUI();
+      toast('Gewichten gereset ✓');
+    }
+  }
+
+  // PWA Service Worker
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+
+  // Initial render
+  renderUI();
+</script>
+
+</body>
+</html>
