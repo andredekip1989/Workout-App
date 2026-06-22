@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#dc2626">
+<link rel="manifest" href="manifest.json">
+<title>Workout Schema</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: #0d0d0d;
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(220,38,38,0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(220,38,38,0.06) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .bg-weights {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.04;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 60px;
+    padding: 40px;
+    align-items: center;
+  }
+  .bg-weights svg { width: 80px; height: 80px; fill: #ffffff; }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  .header { text-align: center; margin-bottom: 12px; }
+  .header .label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600; font-size: 13px;
+    letter-spacing: 5px; text-transform: uppercase;
+    color: #dc2626; margin-bottom: 10px;
+  }
+  .header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 8vw, 96px);
+    color: #ffffff; line-height: 0.9; letter-spacing: 3px;
+  }
+  .header h1 span { color: #dc2626; }
+  .divider { width: 60px; height: 3px; background: #dc2626; margin: 20px auto 0; }
+
+  .edit-hint {
+    text-align: center; margin: 18px 0 16px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; letter-spacing: 2px;
+    color: #444; text-transform: uppercase;
+  }
+  .edit-hint span {
+    display: inline-block; background: #1a1a1a;
+    border: 1px solid #2a2a2a; border-radius: 3px;
+    padding: 4px 10px; color: #666; font-size: 12px;
+  }
+
+  .toolbar {
+    display: flex; justify-content: center; gap: 10px;
+    margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .toolbar-btn {
+    background: transparent; border: 1px solid #2a2a2a;
+    color: #555; font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 6px 16px; border-radius: 3px; cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .toolbar-btn:hover { border-color: #dc2626; color: #dc2626; }
+  .toolbar-btn.add-btn { border-color: #333; color: #666; }
+  .toolbar-btn.add-btn:hover { border-color: #16a34a; color: #16a34a; }
+
+  #toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #16a34a; color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 10px 22px; border-radius: 4px;
+    opacity: 0; transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none; z-index: 999;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .dag {
+    background: #161616; border: 1px solid #222;
+    border-radius: 4px; overflow: hidden; position: relative;
+  }
+  .dag::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+  }
+  .pull::before { background: #dc2626; }
+  .legs::before { background: #f97316; }
+  .push::before { background: #3b82f6; }
+
+  .dag-header { padding: 22px 24px 18px; border-bottom: 1px solid #1e1e1e; }
+  .dag-naam {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px; letter-spacing: 2px; color: #ffffff; line-height: 1;
+  }
+  .dag-type {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600; font-size: 11px;
+    letter-spacing: 4px; text-transform: uppercase; margin-top: 4px;
+  }
+  .pull .dag-type { color: #ef4444; }
+  .legs .dag-type { color: #f97316; }
+  .push .dag-type { color: #3b82f6; }
+  .dag-icon { float: right; margin-top: -8px; opacity: 0.15; font-size: 40px; }
+
+  .oefeningen { padding: 8px 0; list-style: none; }
+
+  .oefening {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 16px 8px 24px;
+    border-bottom: 1px solid #1a1a1a;
+    position: relative;
+  }
+  .oefening:last-child { border-bottom: none; }
+  .oefening:hover { background: rgba(255,255,255,0.015); }
+
+  .nr {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; min-width: 20px; line-height: 1.2; flex-shrink: 0;
+  }
+  .pull .nr { color: #7f1d1d; }
+  .legs .nr { color: #7c2d12; }
+  .push .nr { color: #1e3a5f; }
+
+  .info { flex: 1; min-width: 0; }
+
+  /* Bewerkbare naam */
+  .naam-display {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 15px; color: #e5e5e5;
+    line-height: 1.2; cursor: pointer;
+    border-bottom: 1px dashed transparent;
+    transition: border-color 0.15s;
+    display: block; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .naam-display:hover { border-color: #444; }
+
+  .naam-input {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 15px; color: #e5e5e5;
+    background: #1e1e1e; border: 1px solid #555;
+    border-radius: 3px; padding: 2px 6px;
+    width: 100%; display: none; outline: none;
+  }
+  .pull .naam-input { border-color: #dc2626; }
+  .legs .naam-input { border-color: #f97316; }
+  .push .naam-input { border-color: #3b82f6; }
+  .naam-input.editing { display: block; }
+  .naam-display.editing { display: none; }
+
+  /* Bewerkbare spier */
+  .spier-display {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px; color: #555; margin-top: 2px;
+    text-transform: uppercase; letter-spacing: 1px;
+    cursor: pointer; border-bottom: 1px dashed transparent;
+    transition: border-color 0.15s; display: block;
+  }
+  .spier-display:hover { border-color: #333; }
+  .spier-input {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px; color: #888;
+    background: #1a1a1a; border: 1px solid #333;
+    border-radius: 3px; padding: 1px 5px;
+    width: 100%; display: none; outline: none;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .spier-input.editing { display: block; }
+  .spier-display.editing { display: none; }
+
+  /* Gewicht */
+  .gewicht-wrap {
+    display: flex; align-items: center; gap: 3px;
+    flex-shrink: 0; position: relative;
+  }
+  .gewicht-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; white-space: nowrap;
+    padding: 4px 8px; border-radius: 3px; cursor: pointer;
+    border: 1px solid transparent;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .pull .gewicht-display { color: #ef4444; }
+  .legs .gewicht-display { color: #f97316; }
+  .push .gewicht-display { color: #3b82f6; }
+  .gewicht-display:hover { border-color: #333; background: #1e1e1e; }
+  .gewicht-display.editing { display: none; }
+
+  .gewicht-input {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; width: 80px;
+    background: #1e1e1e; border: 1px solid #444;
+    border-radius: 3px; padding: 4px 6px;
+    color: #ffffff; outline: none; display: none;
+  }
+  .pull .gewicht-input { border-color: #dc2626; color: #ef4444; }
+  .legs .gewicht-input { border-color: #f97316; color: #f97316; }
+  .push .gewicht-input { border-color: #3b82f6; color: #3b82f6; }
+  .gewicht-input.editing { display: block; }
+
+  .adj-btn {
+    background: none; border: none; cursor: pointer;
+    color: #2a2a2a; font-size: 16px; line-height: 1;
+    padding: 2px 3px; transition: color 0.15s; font-weight: bold;
+    display: none;
+  }
+  .oefening:hover .adj-btn { display: block; }
+  .pull .adj-btn:hover { color: #ef4444; }
+  .legs .adj-btn:hover { color: #f97316; }
+  .push .adj-btn:hover { color: #3b82f6; }
+
+  .pr-badge {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 9px; font-weight: 700; letter-spacing: 1px;
+    background: #16a34a; color: #fff;
+    padding: 1px 5px; border-radius: 2px;
+    position: absolute; top: -12px; right: 0;
+    opacity: 0; transition: opacity 0.3s; white-space: nowrap;
+  }
+  .pr-badge.show { opacity: 1; }
+
+  /* Verwijder knop */
+  .del-btn {
+    background: none; border: none; cursor: pointer;
+    color: #2a2a2a; font-size: 14px; padding: 2px 4px;
+    transition: color 0.15s; display: none; flex-shrink: 0;
+  }
+  .oefening:hover .del-btn { display: block; }
+  .del-btn:hover { color: #dc2626; }
+
+  /* Oefening toevoegen */
+  .add-oefening {
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px; border-top: 1px solid #1a1a1a;
+  }
+  .add-oefening-btn {
+    background: none; border: 1px dashed #222; color: #333;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 5px 16px; border-radius: 3px; cursor: pointer;
+    width: 100%; transition: border-color 0.2s, color 0.2s;
+  }
+  .pull .add-oefening-btn:hover { border-color: #dc2626; color: #dc2626; }
+  .legs .add-oefening-btn:hover { border-color: #f97316; color: #f97316; }
+  .push .add-oefening-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+
+  .footer {
+    text-align: center; margin-top: 36px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px; letter-spacing: 3px; color: #333; text-transform: uppercase;
+  }
+
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+    .adj-btn { display: block; }
+    .del-btn { display: block; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-weights" aria-hidden="true">
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="20" width="14" height="60" rx="4"/><rect x="74" y="20" width="14" height="60" rx="4"/></svg>
+</div>
+
+<div id="toast">✓ Opgeslagen!</div>
+
+<div class="wrapper">
+  <div class="header">
+    <div class="label">Weekschema</div>
+    <h1>WORKOUT<br><span>SCHEMA</span></h1>
+    <div class="divider"></div>
+  </div>
+
+  <div class="edit-hint">
+    <span>✏️ Klik op naam of gewicht om aan te passen</span>
+  </div>
+
+  <div class="toolbar">
+    <button class="toolbar-btn" onclick="resetAlles()">↩ Begingewichten terugzetten</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="footer">Train hard · Recover harder · Repeat</div>
+</div>
+
+<script>
+const STORAGE_KEY = 'workout_v3';
+const STEP = 2.5;
+
+const DEFAULT_DATA = {
+  dagen: [
+    {
+      id: 'ma', naam: 'Maandag', type: 'Pull · Rug & Tricep', klasse: 'pull', icon: '🔴',
+      oefeningen: [
+        { id: 'ma-1', naam: 'Zittend stang na borst trekken', spier: 'Rug', gewicht: '60 kg' },
+        { id: 'ma-2', naam: 'Bank overhead 3-hoek trekken', spier: 'Tricep', gewicht: '27,5 kg' },
+        { id: 'ma-3', naam: 'T-bone', spier: 'Rug', gewicht: '40 kg' },
+        { id: 'ma-4', naam: 'Touw trekken naar beneden voor', spier: 'Tricep', gewicht: '—' },
+        { id: 'ma-5', naam: 'Touwtrekken apparaat (duo)', spier: 'Rug', gewicht: '—' },
+        { id: 'ma-6', naam: 'Paalstang naar beneden duwen', spier: 'Tricep', gewicht: '—' }
+      ]
+    },
+    {
+      id: 'wo', naam: 'Woensdag', type: 'Legs · Benen & Kuiten', klasse: 'legs', icon: '🟠',
+      oefeningen: [
+        { id: 'wo-1', naam: 'Hack Squat (schouderbreedte)', spier: 'Bovenbenen · + paars elastiek', gewicht: '2×20 kg' },
+        { id: 'wo-2', naam: 'Plaat kuiten (punten erop)', spier: 'Kuiten', gewicht: '45 kg' },
+        { id: 'wo-3', naam: 'Rol naar beneden drukken', spier: 'Hamstring machine', gewicht: '—' },
+        { id: 'wo-4', naam: 'Kuiten ijzeren lat', spier: 'Kuiten', gewicht: '—' },
+        { id: 'wo-5', naam: 'Bovenbenen rol omhoog drukken', spier: 'Bovenbenen', gewicht: '—' }
+      ]
+    },
+    {
+      id: 'vr', naam: 'Vrijdag', type: 'Push · Borst, Schouder & Bicep', klasse: 'push', icon: '🔵',
+      oefeningen: [
+        { id: 'vr-1', naam: 'Dubbels chest', spier: 'Borst', gewicht: '2×34 kg' },
+        { id: 'vr-2', naam: 'Smithmachine gezicht tegen stang', spier: 'Schouders', gewicht: '20 kg' },
+        { id: 'vr-3', naam: 'Touw naar borst trekken', spier: 'Bicep / Voorarm', gewicht: '28,75 kg' },
+        { id: 'vr-4', naam: 'Liggend Smithmachine opwarmen', spier: 'Borst · 10 → 20 → 25 kg', gewicht: '10–25 kg' },
+        { id: 'vr-5', naam: 'Armstrekken omhoog met handvat', spier: 'Schouder · armband', gewicht: '7,5 kg' },
+        { id: 'vr-6', naam: 'Bicep bank', spier: 'Bicep', gewicht: '10 kg' },
+        { id: 'vr-7', naam: 'Fly onderuit gezakt', spier: 'Borst', gewicht: '35 kg' }
+      ]
+    }
+  ]
+};
+
+// ── State ──────────────────────────────────────────────────────────────────
+let state;
+
+function laadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    state = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_DATA));
+  } catch(e) {
+    state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  }
+}
+
+function slaOp(msg) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  toonToast(msg || '✓ Opgeslagen!');
+}
+
+function resetAlles() {
+  if (!confirm('Weet je zeker dat je alles terugzet naar de beginwaarden?')) return;
+  state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  slaOp('↩ Teruggezet!');
+  render();
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+let toastTimer;
+function toonToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function extractNum(tekst) {
+  const m = (tekst || '').replace(',', '.').match(/[\d.]+/);
+  return m ? parseFloat(m[0]) : null;
+}
+
+function maakEditbaar(el, onSave) {
+  el.addEventListener('click', () => {
+    const input = el.nextElementSibling;
+    input.value = el.textContent;
+    el.classList.add('editing');
+    input.classList.add('editing');
+    input.focus();
+    input.select();
+
+    const bevestig = () => {
+      const val = input.value.trim() || el.textContent;
+      el.textContent = val;
+      el.classList.remove('editing');
+      input.classList.remove('editing');
+      onSave(val);
+    };
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { el.classList.remove('editing'); input.classList.remove('editing'); }
+    }, { once: true });
+    input.addEventListener('blur', bevestig, { once: true });
+  });
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function render() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  state.dagen.forEach(dag => {
+    const dagEl = document.createElement('div');
+    dagEl.className = `dag ${dag.klasse}`;
+    dagEl.innerHTML = `
+      <div class="dag-header">
+        <span class="dag-icon">${dag.icon}</span>
+        <div class="dag-naam">${dag.naam}</div>
+        <div class="dag-type">${dag.type}</div>
+      </div>
+      <ul class="oefeningen" id="list-${dag.id}"></ul>
+      <div class="add-oefening">
+        <button class="add-oefening-btn" data-dag="${dag.id}">+ Oefening toevoegen</button>
+      </div>
+    `;
+    grid.appendChild(dagEl);
+
+    dagEl.querySelector('.add-oefening-btn').addEventListener('click', () => {
+      voegOefeningToe(dag.id);
+    });
+
+    renderOefeningen(dag);
+  });
+}
+
+function renderOefeningen(dag) {
+  const list = document.getElementById(`list-${dag.id}`);
+  list.innerHTML = '';
+
+  dag.oefeningen.forEach((oef, idx) => {
+    const li = document.createElement('li');
+    li.className = 'oefening';
+    li.dataset.id = oef.id;
+    li.innerHTML = `
+      <span class="nr">${idx + 1}</span>
+      <div class="info">
+        <span class="naam-display">${oef.naam}</span>
+        <input class="naam-input" type="text" placeholder="Oefening naam" />
+        <span class="spier-display">${oef.spier}</span>
+        <input class="spier-input" type="text" placeholder="Spiergroep" />
+      </div>
+      <div class="gewicht-wrap">
+        <button class="adj-btn minus">−</button>
+        <span class="gewicht-display">${oef.gewicht}</span>
+        <input class="gewicht-input" type="text" />
+        <span class="pr-badge">PR 🔥</span>
+        <button class="adj-btn plus">+</button>
+      </div>
+      <button class="del-btn" title="Verwijder">✕</button>
+    `;
+    list.appendChild(li);
+
+    // Naam bewerkbaar
+    const naamDisplay = li.querySelector('.naam-display');
+    const naamInput = li.querySelector('.naam-input');
+    maakEditbaar(naamDisplay, val => {
+      oef.naam = val;
+      slaOp();
+    });
+
+    // Spier bewerkbaar
+    const spierDisplay = li.querySelector('.spier-display');
+    const spierInput = li.querySelector('.spier-input');
+    maakEditbaar(spierDisplay, val => {
+      oef.spier = val;
+      slaOp();
+    });
+
+    // Gewicht klik
+    const gwDisplay = li.querySelector('.gewicht-display');
+    const gwInput = li.querySelector('.gewicht-input');
+    const prBadge = li.querySelector('.pr-badge');
+
+    gwDisplay.addEventListener('click', () => {
+      gwInput.value = gwDisplay.textContent;
+      gwDisplay.classList.add('editing');
+      gwInput.classList.add('editing');
+      gwInput.focus(); gwInput.select();
+    });
+
+    const bevestigGewicht = () => {
+      const oud = gwDisplay.textContent;
+      const nieuw = gwInput.value.trim() || oud;
+      const oudN = extractNum(oud), nieuwN = extractNum(nieuw);
+      if (nieuwN !== null && oudN !== null && nieuwN > oudN) {
+        prBadge.classList.add('show');
+        setTimeout(() => prBadge.classList.remove('show'), 3000);
+      }
+      gwDisplay.textContent = nieuw;
+      gwDisplay.classList.remove('editing');
+      gwInput.classList.remove('editing');
+      oef.gewicht = nieuw;
+      slaOp();
+    };
+
+    gwInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); gwInput.blur(); }
+      if (e.key === 'Escape') { gwDisplay.classList.remove('editing'); gwInput.classList.remove('editing'); }
+    });
+    gwInput.addEventListener('blur', bevestigGewicht);
+
+    // + / - knoppen
+    li.querySelector('.plus').addEventListener('click', () => {
+      const n = extractNum(gwDisplay.textContent);
+      if (n !== null) {
+        const nieuw = +(n + STEP).toFixed(2);
+        gwDisplay.textContent = gwDisplay.textContent.replace(/[\d]+([.,]\d+)?/, String(nieuw).replace('.', ','));
+        oef.gewicht = gwDisplay.textContent;
+        prBadge.classList.add('show');
+        setTimeout(() => prBadge.classList.remove('show'), 3000);
+        slaOp();
+      }
+    });
+
+    li.querySelector('.minus').addEventListener('click', () => {
+      const n = extractNum(gwDisplay.textContent);
+      if (n !== null && n > STEP) {
+        const nieuw = +(n - STEP).toFixed(2);
+        gwDisplay.textContent = gwDisplay.textContent.replace(/[\d]+([.,]\d+)?/, String(nieuw).replace('.', ','));
+        oef.gewicht = gwDisplay.textContent;
+        slaOp();
+      }
+    });
+
+    // Verwijder
+    li.querySelector('.del-btn').addEventListener('click', () => {
+      if (!confirm(`"${oef.naam}" verwijderen?`)) return;
+      dag.oefeningen.splice(idx, 1);
+      slaOp('🗑 Verwijderd');
+      renderOefeningen(dag);
+    });
+  });
+}
+
+function voegOefeningToe(dagId) {
+  const dag = state.dagen.find(d => d.id === dagId);
+  const nieuwId = dagId + '-' + Date.now();
+  dag.oefeningen.push({ id: nieuwId, naam: 'Nieuwe oefening', spier: 'Spiergroep', gewicht: '—' });
+  slaOp('+ Toegevoegd!');
+  renderOefeningen(dag);
+  // Direct naam bewerkbaar maken
+  const li = document.querySelector(`[data-id="${nieuwId}"]`);
+  if (li) setTimeout(() => li.querySelector('.naam-display').click(), 50);
+}
+
+// ── Service Worker ─────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+laadState();
+render();
+</script>
+</body>
+</html>
