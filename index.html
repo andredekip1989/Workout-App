@@ -1,557 +1,153 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#dc2626">
-<link rel="manifest" href="/manifest.json">
-<title>Workout Schema</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
-
-<!-- iOS / PWA meta -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Workout Schema">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
-<link rel="mask-icon" href="/icons/icon-192.png" color="#dc2626">
-
-<!-- Splash screens for various iPhone sizes -->
-<link rel="apple-touch-startup-image" href="/icons/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)">
-<link rel="apple-touch-startup-image" href="/icons/splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)">
-
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background-color: #0d0d0d;
-    font-family: 'Barlow', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 40px 20px;
-    position: relative;
-    overflow-x: hidden;
-  }
-
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      radial-gradient(circle at 20% 20%, rgba(220,38,38,0.08) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(220,38,38,0.06) 0%, transparent 50%);
-    pointer-events: none;
-  }
-
-  .bg-weights {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.04;
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 60px;
-    padding: 40px;
-    align-items: center;
-  }
-  .bg-weights svg { width: 80px; height: 80px; fill: #ffffff; }
-
-  .wrapper {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 1100px;
-  }
-
-  .header { text-align: center; margin-bottom: 12px; }
-  .header .label {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 600; font-size: 13px;
-    letter-spacing: 5px; text-transform: uppercase;
-    color: #dc2626; margin-bottom: 10px;
-  }
-  .header h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(52px, 8vw, 96px);
-    color: #ffffff; line-height: 0.9; letter-spacing: 3px;
-  }
-  .header h1 span { color: #dc2626; }
-  .divider { width: 60px; height: 3px; background: #dc2626; margin: 20px auto 0; }
-
-  .edit-hint {
-    text-align: center; margin: 18px 0 16px;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px; letter-spacing: 2px;
-    color: #444; text-transform: uppercase;
-  }
-  .edit-hint span {
-    display: inline-block; background: #1a1a1a;
-    border: 1px solid #2a2a2a; border-radius: 3px;
-    padding: 4px 10px; color: #666; font-size: 12px;
-  }
-
-  .toolbar {
-    display: flex; justify-content: center; gap: 10px;
-    margin-bottom: 28px; flex-wrap: wrap;
-  }
-  .toolbar-btn {
-    background: transparent; border: 1px solid #2a2a2a;
-    color: #555; font-family: 'Barlow Condensed', sans-serif;
-    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
-    padding: 6px 16px; border-radius: 3px; cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .toolbar-btn:hover { border-color: #dc2626; color: #dc2626; }
-  .toolbar-btn.add-btn { border-color: #333; color: #666; }
-  .toolbar-btn.add-btn:hover { border-color: #16a34a; color: #16a34a; }
-
-  #toast {
-    position: fixed; bottom: 30px; left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: #16a34a; color: #fff;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 14px; letter-spacing: 2px; text-transform: uppercase;
-    padding: 10px 22px; border-radius: 4px;
-    opacity: 0; transition: opacity 0.3s, transform 0.3s;
-    pointer-events: none; z-index: 999;
-  }
-  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-  }
-
-  .dag {
-    background: #161616; border: 1px solid #222;
-    border-radius: 4px; overflow: hidden; position: relative;
-  }
-  .dag::before {
-    content: ''; position: absolute;
-    top: 0; left: 0; right: 0; height: 3px;
-  }
-  .pull::before { background: #dc2626; }
-  .push::before { background: #3b82f6; }
-  .legs::before { background: #f97316; }
-
-  .dag-header { padding: 22px 24px 18px; border-bottom: 1px solid #1e1e1e; }
-  .dag-naam {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 36px; letter-spacing: 2px; color: #ffffff; line-height: 1;
-  }
-  .dag-type {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 600; font-size: 11px;
-    letter-spacing: 4px; text-transform: uppercase; margin-top: 4px;
-  }
-  .pull .dag-type { color: #ef4444; }
-  .legs .dag-type { color: #f97316; }
-  .push .dag-type { color: #3b82f6; }
-  .dag-icon { float: right; margin-top: -8px; opacity: 0.15; font-size: 40px; }
-
-  .oefeningen { padding: 8px 0; list-style: none; }
-
-  .oefening {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 16px 8px 24px;
-    border-bottom: 1px solid #1a1a1a;
-    position: relative;
-  }
-  .oefening:last-child { border-bottom: none; }
-  .oefening:hover { background: rgba(255,255,255,0.015); }
-
-  .nr {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 20px; min-width: 20px; line-height: 1.2; flex-shrink: 0;
-  }
-  .pull .nr { color: #7f1d1d; }
-  .legs .nr { color: #7c2d12; }
-  .push .nr { color: #1e3a5f; }
-
-  .info { flex: 1; min-width: 0; }
-
-  /* Bewerkbare naam */
-  .naam-display {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700; font-size: 15px; color: #e5e5e5;
-    line-height: 1.2; cursor: pointer;
-    border-bottom: 1px dashed transparent;
-    transition: border-color 0.15s;
-    display: block; white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis;
-  }
-  .naam-display:hover { border-color: #444; }
-
-  .naam-input {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700; font-size: 15px; color: #e5e5e5;
-    background: #1e1e1e; border: 1px solid #555;
-    border-radius: 3px; padding: 2px 6px;
-    width: 100%; display: none; outline: none;
-  }
-  .pull .naam-input { border-color: #dc2626; }
-  .legs .naam-input { border-color: #f97316; }
-  .push .naam-input { border-color: #3b82f6; }
-  .naam-input.editing { display: block; }
-  .naam-display.editing { display: none; }
-
-  /* Bewerkbare spier */
-  .spier-display {
-    font-family: 'Barlow', sans-serif;
-    font-size: 11px; color: #555; margin-top: 2px;
-    text-transform: uppercase; letter-spacing: 1px;
-    cursor: pointer; border-bottom: 1px dashed transparent;
-    transition: border-color 0.15s; display: block;
-  }
-  .spier-display:hover { border-color: #333; }
-  .spier-input {
-    font-family: 'Barlow', sans-serif;
-    font-size: 11px; color: #888;
-    background: #1a1a1a; border: 1px solid #333;
-    border-radius: 3px; padding: 1px 5px;
-    width: 100%; display: none; outline: none;
-    text-transform: uppercase; letter-spacing: 1px;
-  }
-  .spier-input.editing { display: block; }
-  .spier-display.editing { display: none; }
-
-  /* Gewicht */
-  .gewicht-wrap {
-    display: flex; align-items: center; gap: 3px;
-    flex-shrink: 0; position: relative;
-  }
-  .gewicht-display {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px; white-space: nowrap;
-    padding: 4px 8px; border-radius: 3px; cursor: pointer;
-    border: 1px solid transparent;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .pull .gewicht-display { color: #ef4444; }
-  .legs .gewicht-display { color: #f97316; }
-  .push .gewicht-display { color: #3b82f6; }
-  .gewicht-display:hover { border-color: #333; background: #1e1e1e; }
-  .gewicht-display.editing { display: none; }
-
-  .gewicht-input {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px; width: 80px;
-    background: #1e1e1e; border: 1px solid #444;
-    border-radius: 3px; padding: 4px 6px;
-    color: #ffffff; outline: none; display: none;
-  }
-  .pull .gewicht-input { border-color: #dc2626; color: #ef4444; }
-  .legs .gewicht-input { border-color: #f97316; color: #f97316; }
-  .push .gewicht-input { border-color: #3b82f6; color: #3b82f6; }
-  .gewicht-input.editing { display: block; }
-
-  .adj-btn {
-    background: none; border: none; cursor: pointer;
-    color: #2a2a2a; font-size: 16px; line-height: 1;
-    padding: 2px 3px; transition: color 0.15s; font-weight: bold;
-    display: none;
-  }
-  .oefening:hover .adj-btn { display: block; }
-  .pull .adj-btn:hover { color: #ef4444; }
-  .legs .adj-btn:hover { color: #f97316; }
-  .push .adj-btn:hover { color: #3b82f6; }
-
-  .pr-badge {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 9px; font-weight: 700; letter-spacing: 1px;
-    background: #16a34a; color: #fff;
-    padding: 1px 5px; border-radius: 2px;
-    position: absolute; top: -12px; right: 0;
-    opacity: 0; transition: opacity 0.3s; white-space: nowrap;
-  }
-  .pr-badge.show { opacity: 1; }
-
-  /* Verwijder knop */
-  .del-btn {
-    background: none; border: none; cursor: pointer;
-    color: #2a2a2a; font-size: 14px; padding: 2px 4px;
-    transition: color 0.15s; display: none; flex-shrink: 0;
-  }
-  .oefening:hover .del-btn { display: block; }
-  .del-btn:hover { color: #dc2626; }
-
-  /* Oefening toevoegen */
-  .add-oefening {
-    display: flex; align-items: center; justify-content: center;
-    padding: 10px; border-top: 1px solid #1a1a1a;
-  }
-  .add-oefening-btn {
-    background: none; border: 1px dashed #222; color: #333;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
-    padding: 5px 16px; border-radius: 3px; cursor: pointer;
-    width: 100%; transition: border-color 0.2s, color 0.2s;
-  }
-  .pull .add-oefening-btn:hover { border-color: #dc2626; color: #dc2626; }
-  .legs .add-oefening-btn:hover { border-color: #f97316; color: #f97316; }
-  .push .add-oefening-btn:hover { border-color: #3b82f6; color: #3b82f6; }
-
-  .footer {
-    text-align: center; margin-top: 36px;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 12px; letter-spacing: 3px; color: #333; text-transform: uppercase;
-  }
-
-  @media (max-width: 768px) {
-    .grid { grid-template-columns: 1fr; }
-    .adj-btn { display: block; }
-    .del-btn { display: block; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090b10">
+  <meta name="description" content="Maak trainingsschema's, log workouts en bekijk je progressie.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Workout">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Workout — Train slimmer</title>
 </head>
 <body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#overview" aria-label="Workout home">
+        <span class="brand-mark">W</span>
+        <span><strong>WORKOUT</strong><small>TRAIN SMARTER</small></span>
+      </a>
 
-<div class="bg-weights" aria-hidden="true">
-  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
-  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
-  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
-  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
-  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
-  <svg viewBox="0 0 100 100"><rect x="0" y="42" width="100" height="16" rx="4"/><rect x="0" y="28" width="18" height="44" rx="6"/><rect x="82" y="28" width="18" height="44" rx="6"/><rect x="12" y="52" width="76" height="8" rx="2"/></svg>
-</div>
+      <nav class="main-nav" aria-label="Hoofdnavigatie">
+        <button class="nav-item active" data-view="overview"><span>⌂</span> Overzicht</button>
+        <button class="nav-item" data-view="plans"><span>▦</span> Schema's</button>
+        <button class="nav-item" data-view="progress"><span>↗</span> Voortgang</button>
+      </nav>
 
-<div class="wrapper">
-  <div class="header">
-    <div class="label">📋 BEHEER JE TRAINING</div>
-    <h1>WORKOUT <span>SCHEMA</span></h1>
-    <div class="divider"></div>
-  </div>
+      <div class="sidebar-card">
+        <span class="eyebrow">VOLGENDE STAP</span>
+        <strong>Blijf consistent</strong>
+        <p>Iedere gelogde training brengt je dichter bij je doel.</p>
+      </div>
+      <p class="storage-note">Je gegevens blijven veilig op dit apparaat.</p>
+    </aside>
 
-  <div class="edit-hint">
-    <span>✏️ KLIK OP EEN GEWICHT OM HET AAN TE PASSEN</span>
-  </div>
-
-  <div class="toolbar">
-    <button class="toolbar-btn" onclick="resetAllWeights()">↩ TERUGZETTEN NAAR BEGINGEWICHTEN</button>
-  </div>
-
-  <div class="grid" id="grid"></div>
-
-  <div class="footer">TRAIN HARD · RECOVER HARDER · REPEAT</div>
-</div>
-
-<div id="toast"></div>
-
-<script>
-  // Initiële schema met jouw oefeningen
-  let schema = JSON.parse(localStorage.getItem('workoutSchema')) || {
-    monday: { 
-      name: 'Maandag', 
-      type: 'pull', 
-      icon: '🔴', 
-      exercises: [
-        { naam: 'Zittend stang na borst trekken', spier: 'RUG', gewicht: 60 },
-        { naam: 'Bank en over hoofd 3 hoek trekken', spier: 'TRICEP', gewicht: 27.5 },
-        { naam: 'T-bone', spier: 'RUG', gewicht: 40 },
-        { naam: 'Touw trekken naar beneden', spier: 'TRICEP', gewicht: '' },
-        { naam: 'Touwtrekken op apparaat (duo)', spier: 'RUG', gewicht: '' },
-        { naam: 'Paalstang naar beneden duwen', spier: 'TRICEP', gewicht: '' }
-      ]
-    },
-    friday: { 
-      name: 'Vrijdag', 
-      type: 'push', 
-      icon: '🔵', 
-      exercises: [
-        { naam: 'Dubbels chest', spier: 'BORST', gewicht: 68 },
-        { naam: 'Smithmachine gezicht tegen stang', spier: 'SCHOUDERS', gewicht: 20 },
-        { naam: 'Touw naar borst trekken', spier: 'BICEP', gewicht: 28.75 },
-        { naam: 'Liggend Smithmachine opwarmen', spier: 'BORST', gewicht: 25 },
-        { naam: 'Armstrekken omhoog met handvat & armband', spier: 'SCHOUDER', gewicht: 7.5 },
-        { naam: 'Bicep bank', spier: 'BICEP', gewicht: 10 },
-        { naam: 'Fly onderuit gezakt', spier: 'BORST', gewicht: 35 }
-      ]
-    },
-    wednesday: { 
-      name: 'Woensdag', 
-      type: 'legs', 
-      icon: '🟠', 
-      exercises: [
-        { naam: 'Hack Squat (schouderbreedte)', spier: 'BOVENBENEN', gewicht: 40 },
-        { naam: 'Plaat kuiten (punten erop)', spier: 'KUITEN', gewicht: 45 },
-        { naam: 'Rol naar beneden drukken', spier: 'HAMSTRING', gewicht: '' },
-        { naam: 'Kuiten ijzeren lat', spier: 'KUITEN', gewicht: '' },
-        { naam: 'Bovenbenen rol omhoog drukken', spier: 'BOVENBENEN', gewicht: '' }
-      ]
-    }
-  };
-
-  function saveSchema() {
-    localStorage.setItem('workoutSchema', JSON.stringify(schema));
-  }
-
-  function toast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 2000);
-  }
-
-  function renderUI() {
-    const grid = document.getElementById('grid');
-    grid.innerHTML = '';
-
-    Object.entries(schema).forEach(([key, dag]) => {
-      const dagEl = document.createElement('div');
-      dagEl.className = `dag ${dag.type}`;
-      dagEl.innerHTML = `
-        <div class="dag-header">
-          <div class="dag-naam">${dag.icon} ${dag.name}</div>
-          <div class="dag-type">${dag.type === 'pull' ? 'PULL · RUG & TRICEP' : dag.type === 'push' ? 'PUSH · BORST, SCHOUDER & BICEP' : 'LEGS · BENEN & KUITEN'}</div>
+    <main>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="pageEyebrow">JOUW TRAINING</p>
+          <h1 id="pageTitle">Goed bezig <span>🔥</span></h1>
         </div>
-        <ul class="oefeningen" id="oefeningen-${key}"></ul>
-        <div class="add-oefening">
-          <button class="add-oefening-btn" onclick="addExercise('${key}')">+ OEFENING TOEVOEGEN</button>
+        <button class="primary-btn" id="quickWorkoutBtn">＋ Workout starten</button>
+      </header>
+
+      <section class="view active" id="overviewView">
+        <div class="hero-card">
+          <div>
+            <span class="pill">VANDAAG</span>
+            <h2 id="todayTitle">Klaar voor je volgende training?</h2>
+            <p id="todaySubtitle">Kies een schema en log je sets, reps en gewicht.</p>
+          </div>
+          <button class="light-btn" id="heroStartBtn">Start training <span>→</span></button>
         </div>
-      `;
-      grid.appendChild(dagEl);
 
-      const list = document.getElementById(`oefeningen-${key}`);
-      dag.exercises.forEach((ex, idx) => {
-        const li = document.createElement('li');
-        li.className = 'oefening';
-        li.innerHTML = `
-          <div class="nr">${idx + 1}</div>
-          <div class="info">
-            <span class="naam-display" onclick="editNaam('${key}', ${idx})">${ex.naam}</span>
-            <input class="naam-input" type="text" value="${ex.naam}" onblur="saveNaam('${key}', ${idx}, this.value)" onkeydown="if(event.key==='Enter') saveNaam('${key}', ${idx}, this.value)"/>
-            <span class="spier-display" onclick="editSpier('${key}', ${idx})">${ex.spier || '(geen spier gekozen)'}</span>
-            <input class="spier-input" type="text" value="${ex.spier || ''}" onblur="saveSpier('${key}', ${idx}, this.value)" onkeydown="if(event.key==='Enter') saveSpier('${key}', ${idx}, this.value)"/>
-          </div>
-          <div class="gewicht-wrap">
-            <span class="gewicht-display" onclick="editGewicht('${key}', ${idx})">${ex.gewicht ? ex.gewicht + ' kg' : '—'}</span>
-            <input class="gewicht-input" type="number" value="${ex.gewicht || ''}" step="0.5" onblur="saveGewicht('${key}', ${idx}, this.value)" onkeydown="if(event.key==='Enter') saveGewicht('${key}', ${idx}, this.value)"/>
-            <div class="pr-badge">PR 🔥</div>
-          </div>
-          <button class="adj-btn" onclick="adjustWeight('${key}', ${idx}, 2.5)">+</button>
-          <button class="adj-btn" onclick="adjustWeight('${key}', ${idx}, -2.5)">−</button>
-          <button class="del-btn" onclick="deleteExercise('${key}', ${idx})">🗑</button>
-        `;
-        list.appendChild(li);
-      });
-    });
-  }
+        <div class="stats-grid" id="summaryStats"></div>
 
-  function addExercise(dagKey) {
-    schema[dagKey].exercises.push({ naam: '', spier: '', gewicht: '' });
-    saveSchema();
-    renderUI();
-  }
+        <div class="two-column">
+          <section class="panel">
+            <div class="panel-heading">
+              <div><p class="eyebrow">DEZE WEEK</p><h2>Trainingsvolume</h2></div>
+              <span class="muted" id="weekVolumeLabel">0 kg</span>
+            </div>
+            <div class="mini-chart" id="weekChart" aria-label="Trainingsvolume van deze week"></div>
+          </section>
 
-  function deleteExercise(dagKey, idx) {
-    schema[dagKey].exercises.splice(idx, 1);
-    saveSchema();
-    renderUI();
-  }
+          <section class="panel">
+            <div class="panel-heading">
+              <div><p class="eyebrow">RECENT</p><h2>Laatste activiteiten</h2></div>
+              <button class="text-btn" data-go="progress">Bekijk alles</button>
+            </div>
+            <div id="recentActivities" class="activity-list"></div>
+          </section>
+        </div>
+      </section>
 
-  function editNaam(dagKey, idx) {
-    const oefeningen = document.querySelectorAll('.oefening');
-    let count = 0;
-    Object.entries(schema).forEach(([k, d]) => {
-      if(k === dagKey) {
-        const oefening = oefeningen[count + idx];
-        const disp = oefening?.querySelector('.naam-display');
-        const inp = oefening?.querySelector('.naam-input');
-        if(disp && inp) {
-          disp.classList.add('editing');
-          inp.classList.add('editing');
-          inp.focus();
-        }
-      }
-      count += d.exercises.length;
-    });
-  }
+      <section class="view" id="plansView">
+        <div class="section-intro">
+          <div><p class="eyebrow">BOUW JE ROUTINE</p><h2>Mijn trainingsschema</h2><p>Maak trainingsdagen en pas iedere oefening aan.</p></div>
+          <button class="secondary-btn" id="addDayBtn">＋ Trainingsdag</button>
+        </div>
+        <div class="plans-grid" id="plansGrid"></div>
+      </section>
 
-  function editSpier(dagKey, idx) {
-    const oefeningen = document.querySelectorAll('.oefening');
-    let count = 0;
-    Object.entries(schema).forEach(([k, d]) => {
-      if(k === dagKey) {
-        const oefening = oefeningen[count + idx];
-        const disp = oefening?.querySelector('.spier-display');
-        const inp = oefening?.querySelector('.spier-input');
-        if(disp && inp) {
-          disp.classList.add('editing');
-          inp.classList.add('editing');
-          inp.focus();
-        }
-      }
-      count += d.exercises.length;
-    });
-  }
+      <section class="view" id="progressView">
+        <div class="section-intro">
+          <div><p class="eyebrow">JOUW RESULTATEN</p><h2>Voortgang</h2><p>Bekijk je trainingsfrequentie, volume en persoonlijke records.</p></div>
+          <button class="secondary-btn danger-text" id="clearHistoryBtn">Geschiedenis wissen</button>
+        </div>
+        <div class="stats-grid" id="progressStats"></div>
+        <div class="two-column progress-layout">
+          <section class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">LAATSTE 8 WORKOUTS</p><h2>Volume per training</h2></div></div>
+            <div class="volume-chart" id="volumeChart"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">PERSOONLIJKE RECORDS</p><h2>Beste gewichten</h2></div></div>
+            <div id="recordsList" class="records-list"></div>
+          </section>
+        </div>
+        <section class="panel history-panel">
+          <div class="panel-heading"><div><p class="eyebrow">GESCHIEDENIS</p><h2>Alle workouts</h2></div></div>
+          <div id="historyList" class="history-list"></div>
+        </section>
+      </section>
+    </main>
+  </div>
 
-  function editGewicht(dagKey, idx) {
-    const oefeningen = document.querySelectorAll('.oefening');
-    let count = 0;
-    Object.entries(schema).forEach(([k, d]) => {
-      if(k === dagKey) {
-        const oefening = oefeningen[count + idx];
-        const disp = oefening?.querySelector('.gewicht-display');
-        const inp = oefening?.querySelector('.gewicht-input');
-        if(disp && inp) {
-          disp.classList.add('editing');
-          inp.classList.add('editing');
-          inp.focus();
-        }
-      }
-      count += d.exercises.length;
-    });
-  }
+  <nav class="mobile-nav" aria-label="Mobiele navigatie">
+    <button class="active" data-view="overview"><span>⌂</span>Overzicht</button>
+    <button data-view="plans"><span>▦</span>Schema's</button>
+    <button data-view="progress"><span>↗</span>Voortgang</button>
+  </nav>
 
-  function saveNaam(dagKey, idx, val) {
-    schema[dagKey].exercises[idx].naam = val;
-    saveSchema();
-    renderUI();
-  }
+  <dialog id="dayDialog" class="modal">
+    <form method="dialog" id="dayForm">
+      <div class="modal-head"><div><p class="eyebrow">NIEUW SCHEMA</p><h2>Trainingsdag maken</h2></div><button type="button" class="icon-btn modal-close" aria-label="Sluiten">×</button></div>
+      <label>Naam<input id="dayName" required maxlength="30" placeholder="Bijv. Maandag"></label>
+      <label>Type<select id="dayType"><option value="pull">Pull</option><option value="push">Push</option><option value="legs">Legs</option><option value="full">Full body</option></select></label>
+      <div class="modal-actions"><button type="button" class="secondary-btn modal-close">Annuleren</button><button class="primary-btn" id="saveDayBtn">Dag toevoegen</button></div>
+    </form>
+  </dialog>
 
-  function saveSpier(dagKey, idx, val) {
-    schema[dagKey].exercises[idx].spier = val.toUpperCase();
-    saveSchema();
-    renderUI();
-  }
+  <dialog id="exerciseDialog" class="modal">
+    <form method="dialog" id="exerciseForm">
+      <div class="modal-head"><div><p class="eyebrow">OEFENING</p><h2 id="exerciseDialogTitle">Oefening toevoegen</h2></div><button type="button" class="icon-btn modal-close" aria-label="Sluiten">×</button></div>
+      <input type="hidden" id="exerciseDayKey">
+      <input type="hidden" id="exerciseIndex">
+      <label>Naam<input id="exerciseName" required maxlength="60" placeholder="Bijv. Bench press"></label>
+      <label>Spiergroep<input id="exerciseMuscle" maxlength="30" placeholder="Bijv. Borst"></label>
+      <label>Startgewicht (kg)<input id="exerciseWeight" type="number" min="0" max="1000" step="0.25" placeholder="0"></label>
+      <div class="modal-actions"><button type="button" class="secondary-btn modal-close">Annuleren</button><button class="primary-btn" id="saveExerciseBtn">Opslaan</button></div>
+    </form>
+  </dialog>
 
-  function saveGewicht(dagKey, idx, val) {
-    schema[dagKey].exercises[idx].gewicht = val ? parseFloat(val) : '';
-    saveSchema();
-    renderUI();
-    if(val) toast('Gewicht opgeslagen! ✓');
-  }
+  <dialog id="workoutDialog" class="modal workout-modal">
+    <form method="dialog" id="workoutForm">
+      <div class="modal-head"><div><p class="eyebrow">WORKOUT LOGGEN</p><h2 id="workoutTitle">Start training</h2></div><button type="button" class="icon-btn modal-close" aria-label="Sluiten">×</button></div>
+      <label id="planSelectWrap">Kies schema<select id="workoutPlanSelect"></select></label>
+      <div id="workoutExercises" class="workout-exercises"></div>
+      <div class="workout-total"><span>Geschat volume</span><strong id="liveVolume">0 kg</strong></div>
+      <div class="modal-actions"><button type="button" class="secondary-btn modal-close">Annuleren</button><button class="primary-btn" id="finishWorkoutBtn">Workout opslaan</button></div>
+    </form>
+  </dialog>
 
-  function adjustWeight(dagKey, idx, amount) {
-    const current = schema[dagKey].exercises[idx].gewicht || 0;
-    schema[dagKey].exercises[idx].gewicht = parseFloat((current + amount).toFixed(1));
-    saveSchema();
-    renderUI();
-    toast(`Gewicht aangepast: ${schema[dagKey].exercises[idx].gewicht} kg`);
-  }
-
-  function resetAllWeights() {
-    if(confirm('Alle gewichten resetten?')) {
-      Object.entries(schema).forEach(([key, dag]) => {
-        dag.exercises.forEach(ex => ex.gewicht = '');
-      });
-      saveSchema();
-      renderUI();
-      toast('Gewichten gereset ✓');
-    }
-  }
-
-  // PWA Service Worker
-  if('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  }
-
-  // Initial render
-  renderUI();
-</script>
-
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js"></script>
 </body>
 </html>

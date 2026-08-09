@@ -1,5 +1,6 @@
-const CACHE = 'workout-v1';
-const FILES = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'workout-v2';
+const BASE = self.registration.scope;
+const FILES = [BASE, `${BASE}index.html`, `${BASE}styles.css`, `${BASE}app.js`, `${BASE}manifest.json`];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -27,7 +28,7 @@ self.addEventListener('fetch', e => {
           cache.put(e.request, response.clone());
           return response;
         });
-      }).catch(() => caches.match('/index.html'))
+      }).catch(() => caches.match(`${BASE}index.html`))
     );
     return;
   }
